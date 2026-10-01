@@ -103,7 +103,7 @@ function countMaterial(game: Chess): { white: number; black: number } {
   for (const row of board) {
     for (const cell of row) {
       if (cell) {
-        const val = PIECE_VALUES[cell.type];
+        const val = cell.type === "k" ? 0 : PIECE_VALUES[cell.type];
         if (cell.color === "w") white += val;
         else black += val;
       }
@@ -138,7 +138,7 @@ function evaluate(game: Chess): number {
       if (!piece) continue;
 
       // PST index: for white, row 0 = rank 8 (top), for black mirror
-      const pstIndex = piece.color === "w" ? (7 - row) * 8 + col : row * 8 + col;
+      const pstIndex = piece.color === "w" ? row * 8 + col : (7 - row) * 8 + col;
       const pstTable = piece.type === "k" && endgame ? KING_ENDGAME_PST : PST[piece.type];
       const pstBonus = pstTable[pstIndex];
 
@@ -210,19 +210,19 @@ function minimax(
 export interface AIMove {
   from: Square;
   to: Square;
-  promotion?: string;
+  promotion?: PieceSymbol;
 }
 
 /**
  * Get the best move for the AI using minimax with alpha-beta pruning.
- * Uses a Web Worker-style approach by running synchronously but yielding
- * at shallow depths for responsiveness.
+ * Called in a Web Worker so the board stays responsive during search.
  */
 export function getBestMove(
   game: Chess,
   difficulty: AIDifficulty = "medium",
   aiColor: Color = "b"
 ): AIMove | null {
+  if (game.isGameOver()) return null;
   const depth = DIFFICULTY_DEPTH[difficulty];
   const moves = game.moves({ verbose: true });
 

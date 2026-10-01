@@ -1,150 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Crown, Bot, Users } from "lucide-react";
-import ChessBoard from "@/components/ChessBoard";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { ArrowUpRight, ArrowDownUp, BookOpen, ChevronRight, Crown, Undo2 } from "lucide-react";
 import GameSidebar from "@/components/GameSidebar";
+import CapturedPieces from "@/components/CapturedPieces";
 import { useChessGame } from "@/lib/useChessGame";
-import type { GameMode } from "@/lib/types";
+import { PIECE_VALUES } from "@/lib/game-state";
+import type { GameStatus } from "@/lib/types";
 import type { Color } from "chess.js";
-import type { AIDifficulty } from "@/lib/chess-ai";
+
+const ChessBoard = dynamic(() => import("@/components/ChessBoard"), {
+  ssr: false, loading: () => <div className="board-placeholder" aria-label="Loading chess board" />,
+});
+
+const STATUS_LABELS: Record<GameStatus, string> = {
+  playing: "", check: "Check. Protect your king.", checkmate: "Checkmate",
+  stalemate: "Draw by stalemate", draw: "Draw", insufficient: "Draw by insufficient material",
+  threefold: "Draw by repetition", "fifty-move": "Draw by the fifty-move rule",
+};
 
 export default function ChessPage() {
-  const {
-    fen,
-    turn,
-    status,
-    moveHistory,
-    capturedPieces,
-    moveSquares,
-    lastMove,
-    makeMove,
-    resetGame,
-    undoMove,
-    isGameOver,
-    gameMode,
-    aiDifficulty,
-    aiColor,
-    isAIThinking,
-    changeGameMode,
-    changeAIDifficulty,
-    changeAIColor,
-  } = useChessGame();
+  const game = useChessGame();
+  const [flipped, setFlipped] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const orientation = (game.gameMode === "ai" && game.aiColor === "w") !== flipped ? "black" : "white";
+  const bottomColor = orientation === "white" ? "w" : "b";
+  const topColor = bottomColor === "w" ? "b" : "w";
+  const colorName = game.turn === "w" ? "White" : "Black";
+  const statusText = game.aiError || (game.status === "checkmate"
+    ? `${game.turn === "w" ? "Black" : "White"} wins by checkmate`
+    : game.isGameOver ? STATUS_LABELS[game.status]
+    : game.isAIThinking ? "Computer is thinking…" : `${colorName} to move`);
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Crown className="w-12 h-12 text-amber-500 animate-pulse" />
-          <span className="text-zinc-500 text-sm">Loading chess board...</span>
-        </div>
-      </div>
-    );
+  function player(color: Color) {
+    const computer = game.gameMode === "ai" && game.aiColor === color;
+    const name = computer ? "The computer" : game.gameMode === "ai" ? "You" : color === "w" ? "White player" : "Black player";
+    const material = (side: Color) => game.capturedPieces[side].reduce((total, piece) => total + PIECE_VALUES[piece], 0);
+    return <div className={`player-row ${game.turn === color && !game.isGameOver ? "active-player" : ""}`}>
+      <div className={`player-avatar ${color === "w" ? "white-avatar" : "black-avatar"}`} aria-hidden="true">{color === "w" ? "♔" : "♚"}</div>
+      <div className="player-info"><strong>{name}</strong><span>{color === "w" ? "White" : "Black"} pieces{computer ? ` · ${game.aiDifficulty}` : ""}</span></div>
+      <CapturedPieces pieces={game.capturedPieces[color]} color={color} materialAdvantage={material(color) - material(color === "w" ? "b" : "w")} />
+      {game.turn === color && !game.isGameOver && <span className="player-turn">{computer ? "Thinking" : "To move"}<i /></span>}
+    </div>;
   }
 
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      {/* Header */}
-      <header className="border-b border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Crown className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-lg font-bold tracking-tight">
-              <span className="gradient-text">Chess</span>
-            </h1>
+  return <div className="app-shell">
+    <a className="skip-link" href="#play">Skip to board</a>
+    <header className="site-header">
+      <Link className="brand" href="/" aria-label="Chess Club home"><span className="brand-icon"><Crown size={21} strokeWidth={1.7} /></span><span>chess<span className="brand-club">club.</span></span></Link>
+      <nav aria-label="Main navigation"><a href="#play" className="nav-active">Play<span /></a>
+        <button aria-expanded={showGuide} onClick={() => setShowGuide(!showGuide)}>How to play</button></nav>
+      <span className="header-note"><i />A good day for a game.</span>
+    </header>
+    <main id="play" className="main-content">
+      <div className="page-heading"><div><p className="eyebrow">THE BOARD IS YOURS</p><h1>A little pause.<br className="mobile-break" /> A better move.</h1><p className="page-description">Slow down. Think ahead. Enjoy the game.</p></div>
+        <div className="game-type"><span className="game-type-icon">∞</span><div><strong>Take your time</strong><span>Casual chess · No clock</span></div></div>
+      </div>
+      {showGuide && <section className="guide" aria-label="How to play"><BookOpen size={20} /><div><h2>Your first move</h2><p>White moves first. Click a piece, then a highlighted square, or drag it to its destination. You can also use Tab and Enter to select squares. Keep your king safe; checkmate ends the game.</p><p>Play a friend on this device or choose the computer. Undo takes back your last turn. Right-click and drag on the board to draw an arrow.</p></div><button className="text-button" onClick={() => setShowGuide(false)}>Got it</button></section>}
+      <div className="play-layout">
+        <section className="board-section" aria-label="Play chess">
+          {player(topColor)}
+          <div className="board-frame"><ChessBoard fen={game.fen} lastMove={game.lastMove} disabled={game.isGameOver || game.isAIThinking || !!game.aiError} orientation={orientation} onMove={game.makeMove} /></div>
+          {player(bottomColor)}
+          <div className="board-toolbar"><div className={`game-status ${game.status === "check" ? "in-check" : ""}`} role="status" aria-live="polite"><i />{statusText}{game.status === "check" && <span> · Check</span>}</div>
+            <div className="board-actions"><button disabled={!game.canUndo} onClick={game.undoMove} title="Undo last turn" aria-label="Undo last turn"><Undo2 size={16} /><span>Undo</span></button>
+              <button onClick={() => setFlipped(!flipped)} title="Flip board" aria-label="Flip board"><ArrowDownUp size={16} /><span>Flip</span></button></div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Mode Selector */}
-            <div className="flex items-center bg-zinc-800/80 rounded-lg p-0.5 border border-zinc-700/50">
-              <button
-                onClick={() => changeGameMode("2player")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  gameMode === "2player"
-                    ? "bg-zinc-700 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-300"
-                }`}
-              >
-                <Users size={12} />
-                2 Player
-              </button>
-              <button
-                onClick={() => changeGameMode("ai")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  gameMode === "ai"
-                    ? "bg-zinc-700 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-300"
-                }`}
-              >
-                <Bot size={12} />
-                vs AI
-              </button>
-            </div>
-          </div>
+          <p className="board-hint">Click to move, or drag a piece. The next move is yours.</p>
+        </section>
+        <div className="panel-column"><GameSidebar game={game} />
+          <div className="club-note"><span aria-hidden="true">♞</span><div><p>Every master was<br /> once a beginner.</p><small>ONE MOVE AT A TIME.</small></div><ArrowUpRight size={18} /></div>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 flex items-start justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-[1400px] flex flex-col lg:flex-row gap-6 items-start">
-          {/* Chess Board */}
-          <div className="flex-1 flex flex-col items-center w-full gap-3">
-            {/* AI Thinking Indicator */}
-            {gameMode === "ai" && isAIThinking && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium slide-in">
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                AI is thinking...
-              </div>
-            )}
-            <ChessBoard
-              fen={fen}
-              moveSquares={moveSquares}
-              lastMove={lastMove}
-              isGameOver={isGameOver || isAIThinking}
-              onMove={makeMove}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="w-full lg:w-[320px] shrink-0">
-            <GameSidebar
-              status={status}
-              turn={turn}
-              isGameOver={isGameOver}
-              moveHistory={moveHistory}
-              capturedPieces={capturedPieces}
-              fen={fen}
-              onReset={resetGame}
-              onUndo={undoMove}
-              gameMode={gameMode}
-              aiDifficulty={aiDifficulty}
-              aiColor={aiColor}
-              isAIThinking={isAIThinking}
-              onChangeDifficulty={changeAIDifficulty}
-              onChangeAIColor={changeAIColor}
-            />
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 py-4">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <span className="text-xs text-zinc-600">
-            Built with Next.js & chess.js
-          </span>
-          <span className="text-xs text-zinc-700 font-mono">
-            v0.1.0
-          </span>
-        </div>
-      </footer>
-    </div>
-  );
+      </div>
+    </main>
+    <footer className="site-footer"><span>Made for the love of the game.</span><a href="https://github.com/ixtaqq/chess" target="_blank" rel="noreferrer">Open source<ChevronRight size={13} /></a><span className="footer-mark">64 squares. Endless possibilities.</span></footer>
+  </div>;
 }

@@ -1,59 +1,36 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
+import type { Move } from "chess.js";
+import { List } from "lucide-react";
 
-interface MoveHistoryProps {
-  moves: string[];
-}
-
-export default function MoveHistory({ moves }: MoveHistoryProps) {
+export default function MoveHistory({ moves }: { moves: Move[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [moves]);
-
-  // Group moves into pairs (white + black)
-  const movePairs: { number: number; white: string; black?: string }[] = [];
-  for (let i = 0; i < moves.length; i += 2) {
-    movePairs.push({
-      number: Math.floor(i / 2) + 1,
-      white: moves[i],
-      black: moves[i + 1],
-    });
+  const pairs: { number: string; white?: string; black?: string }[] = [];
+  for (const move of moves) {
+    const number = move.before.split(" ")[5];
+    let row = pairs.at(-1);
+    if (!row || row.number !== number) {
+      row = { number };
+      pairs.push(row);
+    }
+    if (move.color === "w") row.white = move.san;
+    else row.black = move.san;
   }
-
-  return (
-    <div
-      ref={scrollRef}
-      className="flex-1 overflow-y-auto rounded-lg bg-zinc-900/50 border border-zinc-800 p-2 min-h-0"
-    >
-      {movePairs.length === 0 ? (
-        <div className="text-zinc-600 text-sm text-center py-4 italic">
-          No moves yet
-        </div>
-      ) : (
-        <div className="space-y-0.5">
-          {movePairs.map((pair) => (
-            <div
-              key={pair.number}
-              className="flex items-center text-sm font-mono hover:bg-zinc-800/50 rounded px-2 py-1 transition-colors"
-            >
-              <span className="text-zinc-600 w-8 text-right mr-3 select-none">
-                {pair.number}.
-              </span>
-              <span className="text-zinc-200 w-14 font-medium">
-                {pair.white}
-              </span>
-              {pair.black && (
-                <span className="text-zinc-400 w-14">{pair.black}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <div className="move-list" ref={scrollRef}>
+    {pairs.length === 0 ? <div className="moves-empty">
+      <List size={26} strokeWidth={1.3} />
+      <p>A blank scoresheet.</p>
+      <span>Your story starts with the first move.</span>
+    </div> : <table aria-label="Move history">
+      <thead><tr><th scope="col">#</th><th scope="col">White</th><th scope="col">Black</th></tr></thead>
+      <tbody>{pairs.map((pair, index) => <tr key={`${pair.number}-${index}`}>
+        <th scope="row">{pair.number}.</th><td>{pair.white || "…"}</td>
+        <td className={index === pairs.length - 1 && pair.black ? "latest-move" : ""}>{pair.black || "—"}</td>
+      </tr>)}</tbody>
+    </table>}
+  </div>;
 }
