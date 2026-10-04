@@ -43,6 +43,11 @@ both opponent modes and colors, AI cancellation, keyboard/click/drag moves,
 castling, en passant, promotion, undo, draws, FEN import, clipboard, and PGN export.
 Check narrow phone widths for horizontal overflow. Never substitute a build for UI verification.
 
+## Shared agent workflow
+
+Read `E:\workspace\agent-homebase\PROJECT-WORKFLOW.md` for the shared workflow.
+Use the globally available skills that match the task and the project checks above.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

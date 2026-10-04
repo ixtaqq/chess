@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chess",
+      "runtimeExecutable": "E:\\workspace\\Projects\\.tools\\node22\\node_modules\\node\\bin\\node.exe",
+      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "--hostname", "127.0.0.1", "--port", "3000"],
+      "port": 3000
+    }
+  ]
+}
