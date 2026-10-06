@@ -11,7 +11,7 @@ A local chess app for two players on one device or a computer opponent.
 
 ## Commands
 
-In PowerShell, load the workspace runtime with `. 'E:\workspace\Projects\Use-Node22.ps1'`.
+In PowerShell, load the workspace runtime with `. 'E:\Workspace\Project\Use-Node22.ps1'`.
 
 | Task | Command |
 | --- | --- |
