@@ -4,11 +4,11 @@ A quiet place for a game of chess. Play a friend on the same device or challenge
 
 ## Run locally
 
-Installed at `E:\workspace\Projects\chess`. This project uses npm and Node 22 or newer.
+Installed at `E:\Workspace\Project\web\chess`. This project uses npm and Node 22 or newer.
 
 ```powershell
-Set-Location 'E:\workspace\Projects\chess'
-. 'E:\workspace\Projects\Use-Node22.ps1'
+Set-Location 'E:\Workspace\Project\web\chess'
+. 'E:\Workspace\Project\Use-Node22.ps1'
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
